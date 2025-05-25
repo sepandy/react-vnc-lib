@@ -278,9 +278,10 @@ export class VNCClient {
    * Handle successful WebSocket connection
    */
   private handleConnectionOpen(): void {
-    this.log('WebSocket connection opened, starting VNC handshake');
-    // All connections use standard VNC protocol
-    this.handleProtocolVersion();
+    this.log('WebSocket connection opened, waiting for server version');
+    this.vncState = 'version';
+    // Wait for server to send its version string first (per VNC protocol)
+    // Don't send anything yet - server goes first
   }
 
   /**
@@ -390,8 +391,9 @@ export class VNCClient {
    * Handle VNC protocol version handshake
    */
   private handleProtocolVersion(): void {
-    this.log('Starting VNC protocol handshake');
-    this.vncState = 'version';
+    // This method is now only called when we receive server's version
+    // and we need to respond with our version
+    this.log('Responding to server with VNC protocol version');
     // VNC protocol version 3.8
     const version = 'RFB 003.008\n';
     this.sendRawMessage(version);
@@ -401,6 +403,8 @@ export class VNCClient {
    * Handle server messages based on VNC protocol state
    */
   private handleServerMessage(data: ArrayBuffer): void {
+    this.log(`Received message in state '${this.vncState}', length: ${data.byteLength}`);
+    
     try {
       switch (this.vncState) {
         case 'version':
@@ -433,7 +437,11 @@ export class VNCClient {
   private handleVersionResponse(data: ArrayBuffer): void {
     if (data.byteLength >= 12) {
       const response = new TextDecoder().decode(data);
-      this.log('Server version:', response.trim());
+      this.log('Received server version:', response.trim());
+      
+      // Now respond with our version
+      this.handleProtocolVersion();
+      
       this.vncState = 'security';
       // Server will send security types next
     }
