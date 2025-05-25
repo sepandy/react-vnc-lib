@@ -550,7 +550,7 @@ export class VNCClient {
       // Wait for auth result
       return;
     } else if (data.byteLength === 4) {
-      // Authentication result
+      // Authentication result (4 bytes)
       const result = new DataView(data).getUint32(0, false);
       if (result === 0) {
         this.log('VNC authentication successful');
@@ -559,6 +559,30 @@ export class VNCClient {
       } else {
         throw new Error('VNC authentication failed');
       }
+    } else if (data.byteLength >= 8) {
+      // Authentication result with reason (4 bytes result + 4 bytes length + reason text)
+      const view = new DataView(data);
+      const result = view.getUint32(0, false);
+      
+      if (result === 0) {
+        this.log('VNC authentication successful');
+        this.vncState = 'init';
+        this.sendClientInit();
+      } else {
+        // Authentication failed with reason
+        const reasonLength = view.getUint32(4, false);
+        let reason = 'Authentication failed';
+        
+        if (data.byteLength >= 8 + reasonLength) {
+          reason = new TextDecoder().decode(new Uint8Array(data, 8, reasonLength));
+        }
+        
+        this.log('VNC authentication failed:', reason);
+        throw new Error(`VNC authentication failed: ${reason}`);
+      }
+    } else {
+      this.log('Unexpected auth response length:', data.byteLength);
+      throw new Error(`Unexpected authentication response length: ${data.byteLength}`);
     }
   }
 
