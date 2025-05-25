@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useState } from 'react';
 import { useVNC, UseVNCOptions } from '../hooks/useVNC';
 import { VNCKeyEvent, VNCPointerEvent } from '../types/vnc';
 
@@ -25,6 +25,8 @@ export interface VNCViewerProps extends UseVNCOptions {
   connectButtonText?: string;
   /** Custom disconnect button text */
   disconnectButtonText?: string;
+  /** Show blinking cursor when ready to type */
+  showCursor?: boolean;
 }
 
 export const VNCViewer: React.FC<VNCViewerProps> = ({
@@ -39,6 +41,7 @@ export const VNCViewer: React.FC<VNCViewerProps> = ({
   autoFocus = true,
   connectButtonText = 'Connect',
   disconnectButtonText = 'Disconnect',
+  showCursor = true,
   ...vncOptions
 }) => {
   const {
@@ -51,6 +54,23 @@ export const VNCViewer: React.FC<VNCViewerProps> = ({
     error,
     loading
   } = useVNC(vncOptions);
+
+  const [isFocused, setIsFocused] = useState(false);
+  const [cursorVisible, setCursorVisible] = useState(true);
+
+  // Blinking cursor effect
+  useEffect(() => {
+    if (!showCursor || !isFocused || !state.connected || disableKeyboard) {
+      setCursorVisible(false);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setCursorVisible(prev => !prev);
+    }, 530); // Standard cursor blink rate
+
+    return () => clearInterval(interval);
+  }, [showCursor, isFocused, state.connected, disableKeyboard]);
 
   // Handle keyboard events
   const handleKeyDown = useCallback((event: React.KeyboardEvent) => {
@@ -138,6 +158,15 @@ export const VNCViewer: React.FC<VNCViewerProps> = ({
     sendPointerEvent(vncEvent);
   }, [disableMouse, state.connected, sendPointerEvent, vncOptions.scale]);
 
+  // Handle canvas focus
+  const handleCanvasFocus = useCallback(() => {
+    setIsFocused(true);
+  }, []);
+
+  const handleCanvasBlur = useCallback(() => {
+    setIsFocused(false);
+  }, []);
+
   // Auto-focus canvas for keyboard events
   useEffect(() => {
     if (autoFocus && state.connected && canvasRef.current) {
@@ -145,13 +174,27 @@ export const VNCViewer: React.FC<VNCViewerProps> = ({
     }
   }, [autoFocus, state.connected]);
 
+  // Default styles to fill parent
+  const defaultStyle: React.CSSProperties = {
+    width: '100%',
+    height: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    position: 'relative',
+    backgroundColor: '#000',
+    color: '#fff',
+    fontFamily: 'Arial, sans-serif',
+    fontSize: '14px',
+    ...style
+  };
+
   // Render loading component
   if (loading && showLoading) {
     return (
-      <div className={`vnc-viewer ${className}`} style={style}>
+      <div className={`vnc-viewer vnc-viewer--loading ${className}`} style={defaultStyle}>
         {loadingComponent || (
           <div className="vnc-loading">
-            <div>Connecting to VNC server...</div>
+            <div className="vnc-loading__text">Connecting to VNC server...</div>
           </div>
         )}
       </div>
@@ -161,11 +204,15 @@ export const VNCViewer: React.FC<VNCViewerProps> = ({
   // Render error component
   if (error) {
     return (
-      <div className={`vnc-viewer ${className}`} style={style}>
+      <div className={`vnc-viewer vnc-viewer--error ${className}`} style={defaultStyle}>
         {errorComponent || (
           <div className="vnc-error">
-            <div>Connection Error: {error}</div>
-            <button onClick={connect} disabled={state.connecting}>
+            <div className="vnc-error__text">Connection Error: {error}</div>
+            <button 
+              className="vnc-error__button"
+              onClick={connect} 
+              disabled={state.connecting}
+            >
               {state.connecting ? 'Connecting...' : connectButtonText}
             </button>
           </div>
@@ -175,23 +222,34 @@ export const VNCViewer: React.FC<VNCViewerProps> = ({
   }
 
   return (
-    <div className={`vnc-viewer ${className}`} style={style}>
+    <div className={`vnc-viewer vnc-viewer--connected ${className}`} style={defaultStyle}>
       {showStatus && (
         <div className="vnc-status">
-          <div className="vnc-status-info">
-            Status: {state.connected ? 'Connected' : 'Disconnected'}
-            {state.serverName && ` - ${state.serverName}`}
-            {state.width > 0 && state.height > 0 && 
-              ` (${state.width}x${state.height})`
-            }
+          <div className="vnc-status__info">
+            <span className="vnc-status__text">
+              Status: <span className={`vnc-status__indicator vnc-status__indicator--${state.connected ? 'connected' : 'disconnected'}`}>
+                {state.connected ? 'Connected' : 'Disconnected'}
+              </span>
+              {state.serverName && <span className="vnc-status__server"> - {state.serverName}</span>}
+              {state.width > 0 && state.height > 0 && 
+                <span className="vnc-status__resolution"> ({state.width}x{state.height})</span>
+              }
+            </span>
           </div>
           <div className="vnc-controls">
             {!state.connected ? (
-              <button onClick={connect} disabled={state.connecting}>
+              <button 
+                className="vnc-controls__button vnc-controls__button--connect"
+                onClick={connect} 
+                disabled={state.connecting}
+              >
                 {state.connecting ? 'Connecting...' : connectButtonText}
               </button>
             ) : (
-              <button onClick={disconnect}>
+              <button 
+                className="vnc-controls__button vnc-controls__button--disconnect"
+                onClick={disconnect}
+              >
                 {disconnectButtonText}
               </button>
             )}
@@ -202,20 +260,44 @@ export const VNCViewer: React.FC<VNCViewerProps> = ({
       <div className="vnc-canvas-container">
         <canvas
           ref={canvasRef}
-          className="vnc-canvas"
+          className={`vnc-canvas ${isFocused ? 'vnc-canvas--focused' : ''}`}
           tabIndex={0}
           onKeyDown={handleKeyDown}
           onKeyUp={handleKeyUp}
           onMouseDown={handleMouseDown}
           onMouseUp={handleMouseUp}
           onMouseMove={handleMouseMove}
+          onFocus={handleCanvasFocus}
+          onBlur={handleCanvasBlur}
           style={{
             outline: 'none',
             cursor: disableMouse ? 'default' : 'crosshair',
-            border: '1px solid #ccc',
-            background: '#000'
+            border: '1px solid #333',
+            background: '#000',
+            display: 'block',
+            maxWidth: '100%',
+            maxHeight: '100%',
+            flex: 1,
+            position: 'relative'
           }}
         />
+        
+        {/* Blinking cursor indicator */}
+        {showCursor && isFocused && state.connected && !disableKeyboard && (
+          <div 
+            className={`vnc-cursor ${cursorVisible ? 'vnc-cursor--visible' : 'vnc-cursor--hidden'}`}
+            style={{
+              position: 'absolute',
+              top: '10px',
+              right: '10px',
+              width: '2px',
+              height: '16px',
+              backgroundColor: '#00ff00',
+              pointerEvents: 'none',
+              zIndex: 10
+            }}
+          />
+        )}
       </div>
     </div>
   );
