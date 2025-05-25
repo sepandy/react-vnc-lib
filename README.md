@@ -3,13 +3,12 @@
 [![npm version](https://badge.fury.io/js/react-vnc-lib.svg)](https://badge.fury.io/js/react-vnc-lib)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A modern, lightweight VNC client library for React, Next.js, Node.js, and Bun with TypeScript support. Designed with minimal dependencies and maximum compatibility.
+A modern, lightweight VNC client library for React with TypeScript support. Designed with minimal dependencies and maximum compatibility.
 
 ## Features
 
 - 🚀 **Modern TypeScript** - Full type safety and modern ES2020+ features
 - ⚡ **Minimal Dependencies** - Zero runtime dependencies, React as optional peer dependency
-- 🌐 **Universal Compatibility** - Works with React, Next.js, Node.js, and Bun
 - 🎯 **WebSocket Based** - Real-time VNC protocol over WebSocket
 - 🖱️ **Full Input Support** - Keyboard and mouse event handling
 - 📱 **Responsive** - Canvas-based rendering with scaling support
