@@ -24,6 +24,7 @@
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
     "typecheck": "tsc --noEmit",
+    "prepare": "bun run build",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
