@@ -66,18 +66,18 @@ function VNCViewer() {
 export default VNCViewer;
 ```
 
-## 🎯 Authentication Status: WORKING ✅
+## 🎯 Authentication Status: FIXED ✅
 
-This library now has **fully working VNC authentication**! Here's what was fixed:
+This library now has **properly working VNC authentication** based on RFC 6143 compliance! Here's what was fixed:
 
 ### RFC 6143 Compliance ✅
-- ✅ Implements missing bit reversal from [RFC 6143 Errata ID 4951](https://www.rfc-editor.org/errata/eid4951)
-- ✅ VNC-specific DES encryption based on proven implementations
-- ✅ Proper challenge/response handling
+- ✅ Implements proper DES encryption with bit reversal from [RFC 6143 Errata ID 4951](https://www.rfc-editor.org/errata/eid4951)
+- ✅ Full DES implementation based on proven VNC clients (noVNC, established implementations)
+- ✅ Proper challenge/response handling following [Vidar Holen's VNC DES analysis](https://www.vidarholen.net/contents/junk/vnc.html)
 - ✅ Binary WebSocket frame support
 
 ### Tested Compatibility ✅
-- ✅ **Hetzner VNC Web Console**
+- ✅ **Hetzner VNC Web Console** (Now works with proper DES!)
 - ✅ TightVNC Servers
 - ✅ RealVNC Servers
 - ✅ Standard VNC Authentication (Security Type 2)
@@ -209,11 +209,11 @@ const { connect } = useVNC({
 6. **Protocol Messages** - Framebuffer updates, input events, etc.
 
 ### DES Implementation
-This library uses a **VNC-specific DES implementation** that:
-- Implements proper bit reversal (RFC 6143 Errata ID 4951)
-- Uses simplified Feistel network suitable for VNC
-- Based on proven working VNC client implementations
-- Maintains compatibility with all major VNC servers
+This library uses a **proper DES implementation for VNC** that:
+- Implements correct bit reversal (RFC 6143 Errata ID 4951)
+- Uses full DES algorithm with standard S-boxes and permutations
+- Based on proven working VNC client implementations (noVNC, established clients)
+- Maintains RFC 6143 compliance and compatibility with all major VNC servers
 
 ## 📜 License
 
@@ -224,7 +224,8 @@ MIT License - see the [LICENSE](LICENSE) file for details.
 - RFC 6143 specification authors
 - VNC community for protocol documentation  
 - [RFC 6143 Errata ID 4951](https://www.rfc-editor.org/errata/eid4951) for the critical bit reversal fix
-- [Vidar Holen's VNC DES analysis](https://www.vidarholen.net/contents/junk/vnc.html)
+- [Vidar Holen's VNC DES analysis](https://www.vidarholen.net/contents/junk/vnc.html) for documenting the VNC DES quirks
+- Dave Zimmerman and Jef Poskanzer for DES implementation guidance
 - Open source VNC implementations for reference
 
 ---
