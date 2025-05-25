@@ -33,7 +33,8 @@ export class VNCClient {
       autoResize: options.autoResize || true,
       scale: options.scale || 1.0,
       timeout: options.timeout || 10000,
-      debug: options.debug || false
+      debug: options.debug || false,
+      protocols: options.protocols || ['binary', 'vnc', 'rfb']
     };
 
     this.state = {
@@ -68,7 +69,10 @@ export class VNCClient {
       }
 
       this.log('Attempting to connect to:', this.options.url);
-      this.ws = new WebSocket(this.options.url);
+      this.log('Using WebSocket protocols:', this.options.protocols);
+      
+      // Use configurable WebSocket subprotocols (important for cloud VNC services)
+      this.ws = new WebSocket(this.options.url, this.options.protocols);
       this.ws.binaryType = 'arraybuffer';
 
       this.setupWebSocketHandlers();
@@ -338,6 +342,12 @@ export class VNCClient {
     
     let message = 'WebSocket connection error';
     
+    // Try to get more specific error information
+    if (event instanceof ErrorEvent) {
+      message = `WebSocket error: ${event.message}`;
+    } else if (event.type === 'error') {
+      message = 'WebSocket connection failed. Check network connectivity and server availability.';
+    }
     
     this.setState({ connecting: false, connected: false, error: message });
     this.emit('error', { message });
