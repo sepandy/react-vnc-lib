@@ -44,6 +44,7 @@ export interface UseVNCReturn {
 export function useVNC(options: UseVNCOptions): UseVNCReturn {
   const clientRef = useRef<VNCClient | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const isMountedRef = useRef(true);
   const [state, setState] = useState<VNCConnectionState>({
     connected: false,
     connecting: false,
@@ -57,6 +58,7 @@ export function useVNC(options: UseVNCOptions): UseVNCReturn {
 
   // Initialize client
   useEffect(() => {
+    isMountedRef.current = true;
     const client = new VNCClient(options);
     clientRef.current = client;
 
@@ -105,9 +107,13 @@ export function useVNC(options: UseVNCOptions): UseVNCReturn {
     }
 
     return () => {
-      if (options.autoDisconnect !== false) {
-        client.disconnect();
-      }
+      isMountedRef.current = false;
+      // Use setTimeout to defer disconnection and allow for quick re-mount (StrictMode)
+      setTimeout(() => {
+        if (!isMountedRef.current && options.autoDisconnect !== false) {
+          client.disconnect();
+        }
+      }, 100);
     };
   }, [options.url, options.autoConnect, options.autoDisconnect]);
 
