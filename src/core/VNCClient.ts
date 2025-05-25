@@ -57,6 +57,9 @@ export class VNCClient {
       throw new Error('Already connecting or connected');
     }
 
+    // Clean up any existing connection state before reconnecting
+    this.cleanupExistingConnection();
+
     this.setState({ connecting: true, error: null });
     this.vncState = 'version'; // Reset VNC protocol state
     this.emit('connecting');
@@ -328,7 +331,19 @@ export class VNCClient {
 
     // Attempt reconnection for certain error codes if it was a working connection
     if (wasConnected && this.shouldAttemptReconnect(event.code)) {
+      this.log(`Connection lost (code ${event.code}), attempting reconnection...`);
       this.attemptReconnect();
+    } else if (this.reconnectAttempts > 0) {
+      // If this was a reconnection attempt that failed, provide specific feedback
+      this.log(`Reconnection attempt ${this.reconnectAttempts} failed with code ${event.code}. ${
+        event.code === 1003 ? 'This may indicate protocol state issues or server rejection.' : ''
+      }`);
+      
+      // Reset reconnection attempts after certain failures to prevent endless loops
+      if (event.code === 1003 || event.code === 1002) {
+        this.log('Resetting reconnection attempts due to protocol error');
+        this.reconnectAttempts = this.maxReconnectAttempts; // Stop further attempts
+      }
     }
   }
 
@@ -355,7 +370,9 @@ export class VNCClient {
    * Check if we should attempt reconnection
    */
   private shouldAttemptReconnect(closeCode: number): boolean {
-    return closeCode === 1006 && this.reconnectAttempts < this.maxReconnectAttempts;
+    // Only attempt reconnection for specific error codes and within limits
+    const retryableCodes = [1006]; // Connection lost unexpectedly
+    return retryableCodes.includes(closeCode) && this.reconnectAttempts < this.maxReconnectAttempts;
   }
 
   /**
@@ -374,9 +391,13 @@ export class VNCClient {
     
     setTimeout(() => {
       if (!this.state.connected && !this.state.connecting) {
+        this.log('Starting reconnection attempt...');
         this.connect().catch(error => {
           this.log('Reconnection failed:', error.message);
+          // The error will be handled by handleConnectionClose if it's a WebSocket close event
         });
+      } else {
+        this.log('Skipping reconnection - already connected or connecting');
       }
     }, delay);
   }
@@ -630,11 +651,14 @@ export class VNCClient {
   }
 
   /**
-   * Send raw string message
+   * Send raw string message as binary data
    */
   private sendRawMessage(data: string): void {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.ws.send(data);
+      // Convert string to binary data since some servers only accept binary frames
+      const encoder = new TextEncoder();
+      const binaryData = encoder.encode(data);
+      this.ws.send(binaryData.buffer);
     }
   }
 
@@ -675,5 +699,36 @@ export class VNCClient {
     if (this.options.debug) {
       console.log('[VNC]', ...args);
     }
+  }
+
+  /**
+   * Clean up existing connection state without triggering disconnect events
+   */
+  private cleanupExistingConnection(): void {
+    // Clear any existing connection timeout
+    if (this.connectionTimeout) {
+      clearTimeout(this.connectionTimeout);
+      this.connectionTimeout = null;
+    }
+
+    // Clean up existing WebSocket if present
+    if (this.ws) {
+      // Remove event handlers to prevent unwanted events during cleanup
+      this.ws.onopen = null;
+      this.ws.onmessage = null;
+      this.ws.onclose = null;
+      this.ws.onerror = null;
+      
+      // Close the WebSocket if it's still open
+      if (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING) {
+        this.ws.close(1000, 'Reconnecting');
+      }
+      
+      this.ws = null;
+    }
+
+    // Reset VNC-specific state
+    this.serverInit = null;
+    this.vncState = 'version';
   }
 } 
