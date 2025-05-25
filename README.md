@@ -323,7 +323,7 @@ websockify 6080 localhost:5900
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/react-vnc-lib.git
+git clone https://github.com/sepandy/react-vnc-lib.git
 cd react-vnc-lib
 
 # Install dependencies
@@ -356,9 +356,9 @@ See [CHANGELOG.md](CHANGELOG.md) for a list of changes.
 
 ## Support
 
-- 📖 [Documentation](https://github.com/yourusername/react-vnc-lib#readme)
-- 🐛 [Issue Tracker](https://github.com/yourusername/react-vnc-lib/issues)
-- 💬 [Discussions](https://github.com/yourusername/react-vnc-lib/discussions)
+- 📖 [Documentation](https://github.com/sepandy/react-vnc-lib#readme)
+- 🐛 [Issue Tracker](https://github.com/sepandy/react-vnc-lib/issues)
+- 💬 [Discussions](https://github.com/sepandy/react-vnc-lib/discussions)
 
 ## Acknowledgments
 
