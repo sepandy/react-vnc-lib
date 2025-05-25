@@ -1,6 +1,6 @@
 {
   "name": "react-vnc-lib",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "A modern, lightweight VNC client library for React, Next.js, Node.js, and Bun with TypeScript support",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
