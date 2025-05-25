@@ -19,8 +19,6 @@ export interface VNCClientOptions {
   timeout?: number;
   /** Enable debug logging */
   debug?: boolean;
-  /** WebSocket subprotocols for cloud VNC services */
-  protocols?: string[];
 }
 
 export interface VNCConnectionState {

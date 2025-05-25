@@ -33,8 +33,7 @@ export class VNCClient {
       autoResize: options.autoResize || true,
       scale: options.scale || 1.0,
       timeout: options.timeout || 10000,
-      debug: options.debug || false,
-      protocols: options.protocols || ['binary', 'vnc', 'rfb']
+      debug: options.debug || false
     };
 
     this.state = {
@@ -69,10 +68,9 @@ export class VNCClient {
       }
 
       this.log('Attempting to connect to:', this.options.url);
-      this.log('Using WebSocket protocols:', this.options.protocols);
       
-      // Use configurable WebSocket subprotocols (important for cloud VNC services)
-      this.ws = new WebSocket(this.options.url, this.options.protocols);
+      // Standard WebSocket connection for VNC over WebSocket
+      this.ws = new WebSocket(this.options.url);
       this.ws.binaryType = 'arraybuffer';
 
       this.setupWebSocketHandlers();
