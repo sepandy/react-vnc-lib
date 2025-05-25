@@ -53,8 +53,14 @@ export class VNCClient {
    * Connect to VNC server
    */
   async connect(): Promise<void> {
-    if (this.state.connecting || this.state.connected) {
-      throw new Error('Already connecting or connected');
+    if (this.state.connecting) {
+      this.log('Connection attempt already in progress, ignoring duplicate request');
+      return;
+    }
+    
+    if (this.state.connected) {
+      this.log('Already connected, ignoring duplicate connection request');
+      return;
     }
 
     // Clean up any existing connection state before reconnecting
@@ -432,6 +438,12 @@ export class VNCClient {
    * Handle server messages based on VNC protocol state
    */
   private handleServerMessage(data: ArrayBuffer): void {
+    // Check if connection is still valid before processing messages
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      this.log('Ignoring message - WebSocket is not open');
+      return;
+    }
+
     this.log(`Received message in state '${this.vncState}', length: ${data.byteLength}`);
     
     try {

@@ -64,6 +64,9 @@ export function useVNC(options: UseVNCOptions): UseVNCReturn {
 
     // Set up event listeners
     const handleEvent = (event: VNCEvent) => {
+      // Only handle events if component is still mounted
+      if (!isMountedRef.current) return;
+      
       switch (event.type) {
         case 'connecting':
           setLoading(true);
@@ -103,7 +106,23 @@ export function useVNC(options: UseVNCOptions): UseVNCReturn {
 
     // Auto-connect if specified
     if (options.autoConnect) {
-      connect();
+      // Delay auto-connect slightly to avoid React StrictMode issues
+      const connectTimer = setTimeout(() => {
+        if (isMountedRef.current) {
+          connect();
+        }
+      }, 50);
+      
+      return () => {
+        clearTimeout(connectTimer);
+        isMountedRef.current = false;
+        // Use setTimeout to defer disconnection and allow for quick re-mount (StrictMode)
+        setTimeout(() => {
+          if (!isMountedRef.current && options.autoDisconnect !== false) {
+            client.disconnect();
+          }
+        }, 150);
+      };
     }
 
     return () => {
@@ -113,17 +132,25 @@ export function useVNC(options: UseVNCOptions): UseVNCReturn {
         if (!isMountedRef.current && options.autoDisconnect !== false) {
           client.disconnect();
         }
-      }, 100);
+      }, 150);
     };
   }, [options.url, options.autoConnect, options.autoDisconnect]);
 
   // Connect function
   const connect = useCallback(async () => {
-    if (!clientRef.current) return;
+    if (!clientRef.current || !isMountedRef.current) return;
+    
+    // Prevent multiple concurrent connection attempts
+    if (clientRef.current.getState().connecting || clientRef.current.getState().connected) {
+      return;
+    }
+    
     try {
       await clientRef.current.connect();
     } catch (err) {
-      setError((err as Error).message);
+      if (isMountedRef.current) {
+        setError((err as Error).message);
+      }
     }
   }, []);
 
