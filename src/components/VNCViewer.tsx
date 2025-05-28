@@ -1,6 +1,7 @@
 import React, { useEffect, useCallback, useState } from 'react';
 import { useVNC, UseVNCOptions } from '../hooks/useVNC';
 import { VNCKeyEvent, VNCPointerEvent } from '../types/vnc';
+import '../styles/VNCViewer.css';
 
 export interface VNCViewerProps extends UseVNCOptions {
   /** Custom CSS class name */
@@ -271,7 +272,7 @@ export const VNCViewer: React.FC<VNCViewerProps> = ({
           onBlur={handleCanvasBlur}
           style={{
             outline: 'none',
-            cursor: disableMouse ? 'default' : 'crosshair',
+            cursor: disableMouse ? 'default' : 'pointer',
             border: '1px solid #333',
             background: '#000',
             display: 'block',
